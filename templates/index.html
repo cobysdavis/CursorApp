@@ -183,8 +183,10 @@
     <div class="header">
         <h1>My Favorite Locations</h1>
         <div class="user-controls">
-            <span>Welcome, {{ current_user.username }}!</span>
-            <a href="{{ url_for('payment') }}" class="premium-btn">Go Premium</a>
+            <span>Welcome, {{ current_user.username }}! ({{ current_user.tier | title }} Plan)</span>
+            {% if current_user.tier == 'lite' %}
+                <a href="{{ url_for('payment') }}" class="premium-btn">Go Premium</a>
+            {% endif %}
             <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
         </div>
     </div>

@@ -41,6 +41,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
+    tier = db.Column(db.String(20), default='lite', nullable=False)
     locations = db.relationship('Location', backref='user', lazy=True)
 
 class Location(db.Model):
@@ -151,6 +152,8 @@ def logout():
 @app.route('/payment')
 @login_required
 def payment():
+    if current_user.tier == 'premium':
+        return redirect(url_for('index'))
     return render_template('payment.html', stripe_public_key=os.environ.get('STRIPE_PUBLIC_KEY'))
 
 @app.route('/create-checkout-session', methods=['POST'])
@@ -180,6 +183,9 @@ def create_checkout():
 @app.route('/payment/success')
 @login_required
 def payment_success():
+    # Update user tier
+    current_user.tier = 'premium'
+    db.session.commit()
     return render_template('payment_success.html')
 
 @app.route('/payment/cancel')
