@@ -4,11 +4,25 @@
     <title>Sign Up</title>
     <style>
         /* Same styles as login.html */
+        .error-message {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <h2>Sign Up</h2>
+        {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+        {% endif %}
         <form method="POST">
             <div class="form-group">
                 <label>Username:</label>

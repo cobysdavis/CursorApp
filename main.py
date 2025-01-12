@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from dotenv import load_dotenv
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+import stripe
 
 load_dotenv()
 
@@ -33,6 +34,8 @@ migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -123,27 +126,66 @@ def login():
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
+    error = None
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         
         if User.query.filter_by(username=username).first():
-            return 'Username already exists'
-        
-        hashed_password = generate_password_hash(password)
-        new_user = User(username=username, password=hashed_password)
-        db.session.add(new_user)
-        db.session.commit()
-        
-        return redirect(url_for('login'))
+            error = 'Username already exists'
+        else:
+            hashed_password = generate_password_hash(password)
+            new_user = User(username=username, password=hashed_password)
+            db.session.add(new_user)
+            db.session.commit()
+            return redirect(url_for('login'))
     
-    return render_template('signup.html')
+    return render_template('signup.html', error=error)
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+@app.route('/payment')
+@login_required
+def payment():
+    return render_template('payment.html', stripe_public_key=os.environ.get('STRIPE_PUBLIC_KEY'))
+
+@app.route('/create-checkout-session', methods=['POST'])
+@login_required
+def create_checkout():
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': 'Premium Subscription',
+                    },
+                    'unit_amount': 999,  # $9.99 in cents
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=request.host_url + 'payment/success',
+            cancel_url=request.host_url + 'payment/cancel',
+        )
+        return jsonify({'id': checkout_session.id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 403
+
+@app.route('/payment/success')
+@login_required
+def payment_success():
+    return render_template('payment_success.html')
+
+@app.route('/payment/cancel')
+@login_required
+def payment_cancel():
+    return render_template('payment_cancel.html')
 
 if __name__ == '__main__':
     with app.app_context():

@@ -164,6 +164,19 @@
         .logout-btn:hover {
             background-color: #c82333;
         }
+
+        .premium-btn {
+            background-color: #ffc107;
+            color: black;
+            padding: 8px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-right: 10px;
+        }
+
+        .premium-btn:hover {
+            background-color: #ffb300;
+        }
     </style>
 </head>
 <body>
@@ -171,6 +184,7 @@
         <h1>My Favorite Locations</h1>
         <div class="user-controls">
             <span>Welcome, {{ current_user.username }}!</span>
+            <a href="{{ url_for('payment') }}" class="premium-btn">Go Premium</a>
             <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
         </div>
     </div>
@@ -221,7 +235,7 @@
     {% for location in locations %}
         <li>
             {{ location.name }} - {{ location.address }}
-            <button onclick="showOnMap({{ location.latitude }}, {{ location.longitude }})">Show on Map</button>
+            <button onclick="showOnMap('{{ location.latitude }}', '{{ location.longitude }}')">Show on Map</button>
             <form style="display: inline;" action="{{ url_for('delete_location', id=location.id) }}" method="post">
                 <button type="submit" class="delete-btn">Delete</button>
             </form>
@@ -237,43 +251,32 @@
         let directionsRenderer;
         
         // Get saved locations from Flask as JSON
-        const savedLocations = {{ locations_json | tojson | safe }};
+        const savedLocations = JSON.parse('{{ locations_json | tojson | safe }}');
 
         function initMap() {
-            // Start with a default location
-            const defaultLocation = { lat: -34.397, lng: 150.644 };
+            // Default to a central location (e.g., San Francisco)
+            let defaultLocation = { lat: 37.7749, lng: -122.4194 };
             
-            map = new google.maps.Map(document.getElementById("map"), {
-                center: defaultLocation,
-                zoom: 8,
-            });
-
             // Try to get user's location
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        const pos = {
+                        defaultLocation = {
                             lat: position.coords.latitude,
-                            lng: position.coords.longitude,
+                            lng: position.coords.longitude
                         };
-                        map.setCenter(pos);
-                        map.setZoom(13);
-                        
-                        // Add a marker for current location
-                        new google.maps.Marker({
-                            position: pos,
-                            map: map,
-                            title: "You are here",
-                            icon: {
-                                url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-                            }
-                        });
+                        map.setCenter(defaultLocation);
                     },
                     () => {
-                        console.log("Error: The Geolocation service failed.");
+                        console.log('Error getting location');
                     }
                 );
             }
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: defaultLocation,
+                zoom: 13
+            });
 
             // Add markers for all saved locations
             savedLocations.forEach(location => {
