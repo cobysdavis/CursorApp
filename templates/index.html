@@ -96,6 +96,47 @@
         #current-location {
             background-color: #2196F3;
         }
+
+        .directions-container {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .directions-container select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .direction-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+
+        #directions-panel {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .travel-mode-select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -110,6 +151,37 @@
     <button id="current-location" class="location-btn">Use Current Location</button>
     <button id="save-location" style="display: none;">Save Location</button>
     <div id="map"></div>
+
+    <div class="directions-container">
+        <h3>Get Directions</h3>
+        <select id="start-location">
+            <option value="">Select start location...</option>
+            {% for location in locations %}
+                <option value="{{ location.id }}" data-lat="{{ location.latitude }}" data-lng="{{ location.longitude }}">
+                    {{ location.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <select id="end-location">
+            <option value="">Select destination...</option>
+            {% for location in locations %}
+                <option value="{{ location.id }}" data-lat="{{ location.latitude }}" data-lng="{{ location.longitude }}">
+                    {{ location.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <select id="travel-mode" class="travel-mode-select">
+            <option value="DRIVING">Driving</option>
+            <option value="WALKING">Walking</option>
+            <option value="TRANSIT">Transit</option>
+            <option value="BICYCLING">Bicycling</option>
+        </select>
+
+        <button onclick="calculateRoute()" class="direction-btn">Get Directions</button>
+        <div id="directions-panel"></div>
+    </div>
 
     <h2>Saved Locations:</h2>
     <ul id="locations-list">
@@ -128,6 +200,8 @@
         let currentPlace = null;
         let map;
         let markers = [];
+        let directionsService;
+        let directionsRenderer;
         
         // Get saved locations from Flask as JSON
         const savedLocations = {{ locations_json | tojson | safe }};
@@ -277,9 +351,18 @@
                     .then(data => {
                         if (data.success) {
                             location.reload();
+                        } else {
+                            alert(data.message);
                         }
                     });
                 }
+            });
+
+            // Initialize directions service
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                map: map,
+                panel: document.getElementById('directions-panel')
             });
         }
 
@@ -321,9 +404,47 @@
             });
         }
 
+        function calculateRoute() {
+            const startSelect = document.getElementById('start-location');
+            const endSelect = document.getElementById('end-location');
+            const travelMode = document.getElementById('travel-mode').value;
+            
+            const startOption = startSelect.selectedOptions[0];
+            const endOption = endSelect.selectedOptions[0];
+
+            if (!startOption.value || !endOption.value) {
+                alert('Please select both locations');
+                return;
+            }
+
+            const start = {
+                lat: parseFloat(startOption.dataset.lat),
+                lng: parseFloat(startOption.dataset.lng)
+            };
+            
+            const end = {
+                lat: parseFloat(endOption.dataset.lat),
+                lng: parseFloat(endOption.dataset.lng)
+            };
+
+            const request = {
+                origin: start,
+                destination: end,
+                travelMode: google.maps.TravelMode[travelMode]
+            };
+
+            directionsService.route(request, (result, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(result);
+                } else {
+                    alert('Could not calculate directions: ' + status);
+                }
+            });
+        }
+
         window.onload = initMap;
     </script>
 
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,directions"></script>
 </body>
 </html> 

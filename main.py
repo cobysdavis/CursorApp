@@ -30,6 +30,19 @@ def index():
 @app.route('/add_location', methods=['POST'])
 def add_location():
     data = request.json
+    
+    # Check if location already exists
+    existing_location = Location.query.filter_by(
+        latitude=data['latitude'],
+        longitude=data['longitude']
+    ).first()
+    
+    if existing_location:
+        return jsonify({
+            'success': False,
+            'message': 'This location is already saved!'
+        })
+
     new_location = Location(
         name=data['name'],
         latitude=data['latitude'],
