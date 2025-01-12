@@ -46,3 +46,6 @@ instance/
 
 # Logs
 *.log 
+
+# Environment variables
+.env 

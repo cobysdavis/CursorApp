@@ -137,10 +137,43 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+            margin-bottom: 20px;
+        }
+
+        .user-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 <body>
-    <h1>My Favorite Locations</h1>
+    <div class="header">
+        <h1>My Favorite Locations</h1>
+        <div class="user-controls">
+            <span>Welcome, {{ current_user.username }}!</span>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+    </div>
     
     <input 
         id="search-input" 
